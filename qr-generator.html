@@ -114,7 +114,7 @@
         <button class="btn" id="downloadBtn" type="button">Download</button>
         <button class="btn" id="printBtn" type="button">Print</button>
       </div>
-      <p class="hint">QR text format: Aster@doc1, doctor name, employee ID.</p>
+      <p class="hint">QR text format: Lakeshore@doc1, doctor name, employee ID.</p>
     </section>
     <div class="user-row">
       <span id="userEmail"></span>
@@ -129,7 +129,7 @@
       <div class="print-card" id="printCard">
         <canvas id="printCanvas" width="420" height="420"></canvas>
         <div class="print-lines">
-          <div>Aster@doc1</div>
+          <div>Lakeshore@doc1</div>
           <div id="printDoctorName">Dr. Varghese</div>
           <div>Emp No: <span id="printEmployeeId">102345</span></div>
         </div>
@@ -187,7 +187,7 @@ function qrPayload(){
   return {
     doctorName,
     employeeId,
-    text:`Aster@doc1,${doctorName},${employeeId}`
+    text:`Lakeshore@doc1,${doctorName},${employeeId}`
   };
 }
 
@@ -453,7 +453,7 @@ employeeIdInput.addEventListener('input', render);
 downloadBtn.addEventListener('click', () => {
   const payload = qrPayload();
   const link = document.createElement('a');
-  link.download = `aster-doc1-${escapeFilename(payload.doctorName)}-${escapeFilename(payload.employeeId)}.png`;
+  link.download = `lakeshore-doc1-${escapeFilename(payload.doctorName)}-${escapeFilename(payload.employeeId)}.png`;
   link.href = qrCanvas.toDataURL('image/png');
   link.click();
 });

@@ -9281,6 +9281,7 @@ function parseDoctorQrText(value){
 }
 
 function stopDoctorScanner(){
+  hardwareScanActive = false;
   if (doctorScanFrameId) cancelAnimationFrame(doctorScanFrameId);
   doctorScanFrameId = null;
   if (doctorScanStream){
@@ -9316,7 +9317,37 @@ async function scanDoctorFrame(){
   doctorScanFrameId = requestAnimationFrame(scanDoctorFrame);
 }
 
+// iData hardware scanner (native Android app only; see android/.../IScanPlugin.java)
+const hardwareScanner = window.Capacitor?.isNativePlatform?.() ? window.Capacitor.Plugins?.IScan : null;
+let hardwareScanActive = false;
+if (hardwareScanner){
+  hardwareScanner.addListener('scan', event => {
+    if (!hardwareScanActive) return;
+    const credential = parseDoctorQrText(event.value);
+    if (!credential){
+      setDoctorCredentialStatus('Scan detected, but it is not a valid Lakeshore doctor QR.', 'error');
+      return;
+    }
+    hardwareScanActive = false;
+    doctorCredentialDraft = credential;
+    renderDoctorCredentialModal();
+    setDoctorCredentialStatus('Doctor QR scanned. Press Save to keep it.', 'success');
+  });
+}
+
 async function startDoctorScanner(){
+  if (hardwareScanner){
+    try{
+      const {available} = await hardwareScanner.isAvailable();
+      if (available){
+        hardwareScanActive = true;
+        setDoctorCredentialStatus('Press the scan button on the device and point it at the doctor QR code.', '');
+        return;
+      }
+    }catch(error){
+      console.warn('Hardware scanner unavailable:', error);
+    }
+  }
   if (!navigator.mediaDevices?.getUserMedia){
     setDoctorCredentialStatus('Camera is not available on this device/browser.', 'error');
     return;

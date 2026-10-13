@@ -142,7 +142,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/fireba
 import { browserLocalPersistence, getAuth, onAuthStateChanged, setPersistence, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { firebaseConfig } from './firebase-config.js';
 
-const QR_GENERATOR_EMAILS = ['aster-admin@woyz.in', 'lakeshore.woyz@gmail.com'];
+const QR_GENERATOR_EMAILS = ['admin-admin@woyz.in', 'sujithj19@gmail.com'];
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 setPersistence(auth, browserLocalPersistence).catch(error => console.warn('Unable to enable persistent login:', error));

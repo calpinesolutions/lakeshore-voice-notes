@@ -9,14 +9,14 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null
         && (
-          request.auth.uid == "kzlnh5rBzpTlYEqF7Ou35F1YWaa2"
-          || request.auth.token.email in ["drgigy@gmail.com", "lakeshore.woyz@gmail.com"]
+          request.auth.uid == "zdl7jPz7PbSJyEzOWOVq65u2OI12"
+          || request.auth.token.email in ["admin-admin@woyz.in", "sujithj19@gmail.com"]
         );
     }
 
     function isActivityLogAdmin() {
       return request.auth != null
-        && request.auth.token.email in ["aster-admin@woyz.in", "lakeshore.woyz@gmail.com"];
+        && request.auth.token.email in ["admin-admin@woyz.in", "sujithj19@gmail.com"];
     }
 
     function sharedWith(userId) {

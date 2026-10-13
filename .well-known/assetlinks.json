@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.woyz.notes",
+        "sha256_cert_fingerprints": ["E1:5E:9A:A5:47:E4:8D:D8:2E:50:9D:CC:E3:68:79:51:42:B5:68:44:B8:97:68:F8:0E:7F:A2:96:F4:68:72:11"]
+      }
+    }]

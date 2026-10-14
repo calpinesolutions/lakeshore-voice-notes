@@ -9345,7 +9345,7 @@ async function startDoctorScanner(){
   }catch(error){
     console.error('Unable to open doctor QR scanner:', error);
     stopDoctorScanner();
-    setDoctorCredentialStatus('Unable to open camera. Please allow camera permission and try again.', 'error');
+    setDoctorCredentialStatus(`Unable to open camera (${error?.name || 'unknown error'}). Please allow camera permission and try again.`, 'error');
   }
 }
 

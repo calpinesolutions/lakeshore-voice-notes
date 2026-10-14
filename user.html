@@ -9335,6 +9335,29 @@ if (hardwareScanner){
   });
 }
 
+// Rugged scanner devices can expose the barcode imager as a camera that the
+// scan service keeps open (NotReadableError); fall back to the other cameras.
+async function openDoctorScanStream(){
+  try{
+    return await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
+  }catch(error){
+    if (!['NotReadableError', 'OverconstrainedError', 'AbortError'].includes(error?.name)) throw error;
+    const isRear = camera => /back|rear|environment/i.test(camera.label);
+    const cameras = (await navigator.mediaDevices.enumerateDevices())
+      .filter(device => device.kind === 'videoinput')
+      .sort((a, b) => isRear(b) - isRear(a));
+    let lastError = error;
+    for (const camera of cameras){
+      try{
+        return await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:camera.deviceId}}, audio:false});
+      }catch(cameraError){
+        lastError = cameraError;
+      }
+    }
+    throw lastError;
+  }
+}
+
 async function startDoctorScanner(){
   if (hardwareScanner){
     try{
@@ -9361,10 +9384,7 @@ async function startDoctorScanner(){
   setDoctorCredentialStatus('Opening rear camera...', '');
   try{
     doctorScanDetector = new BarcodeDetector({formats:['qr_code']});
-    doctorScanStream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'}},
-      audio:false
-    });
+    doctorScanStream = await openDoctorScanStream();
     doctorScanVideo.srcObject = doctorScanStream;
     doctorScanBox.classList.add('open');
     await doctorScanVideo.play();

@@ -9357,7 +9357,7 @@ if (hardwareScanner){
       setDoctorCredentialStatus('Scan detected, but it is not a valid Lakeshore doctor QR.', 'error');
       return;
     }
-    hardwareScanActive = false;
+    stopDoctorScanner();
     doctorCredentialDraft = credential;
     renderDoctorCredentialModal();
     setDoctorCredentialStatus('Doctor QR scanned. Press Save to keep it.', 'success');
@@ -9365,24 +9365,27 @@ if (hardwareScanner){
 }
 
 async function startDoctorScanner(){
+  // Hardware scan button stays usable, but the camera opens first like on normal phones.
+  let hardwareReady = false;
   if (hardwareScanner){
     try{
-      const {available} = await hardwareScanner.isAvailable();
-      if (available){
-        hardwareScanActive = true;
-        setDoctorCredentialStatus('Press the scan button on the device and point it at the doctor QR code.', '');
-        return;
-      }
+      hardwareReady = !!(await hardwareScanner.isAvailable()).available;
     }catch(error){
       console.warn('Hardware scanner unavailable:', error);
     }
   }
   if (!navigator.mediaDevices?.getUserMedia){
-    setDoctorCredentialStatus('Camera is not available on this device/browser.', 'error');
+    if (hardwareReady){
+      hardwareScanActive = true;
+      setDoctorCredentialStatus('Press the scan button on the device and point it at the doctor QR code.', '');
+    }else{
+      setDoctorCredentialStatus('Camera is not available on this device/browser.', 'error');
+    }
     return;
   }
   stopDoctorScanner();
   doctorCredentialScanBtn.disabled = true;
+  hardwareScanActive = hardwareReady;
   setDoctorCredentialStatus('Opening rear camera...', '');
   try{
     if ('BarcodeDetector' in window){
@@ -9404,11 +9407,12 @@ async function startDoctorScanner(){
     doctorScanBox.classList.add('open');
     await doctorScanVideo.play();
     doctorCredentialScanBtn.disabled = false;
-    setDoctorCredentialStatus('Point the rear camera at the doctor QR code.', '');
+    setDoctorCredentialStatus(hardwareReady ? 'Point the camera at the doctor QR code, or press the device scan button.' : 'Point the rear camera at the doctor QR code.', '');
     doctorScanFrameId = requestAnimationFrame(scanDoctorFrame);
   }catch(error){
     console.error('Unable to open doctor QR scanner:', error);
     stopDoctorScanner();
+    hardwareScanActive = hardwareReady;
     setDoctorCredentialStatus('Unable to open camera ('+(error?.name || error?.message || 'unknown error')+'). Please allow camera permission and try again.', 'error');
   }
 }

@@ -703,6 +703,8 @@
   .doctor-field strong{ color:var(--ink); font:900 15px 'Inter',sans-serif; }
   .doctor-scan-box{ display:none; margin-top:12px; border:1px dashed #CFE1DA; border-radius:14px; overflow:hidden; background:#111; }
   .doctor-scan-box.open{ display:block; }
+  #doctorCredentialScanBtn{ background:var(--red); border-color:var(--red); color:#fff; }
+  #doctorCredentialScanBtn:hover{ background:#B93B28; border-color:#B93B28; }
   .doctor-scan-video{ width:100%; aspect-ratio:4/3; display:block; object-fit:cover; background:#111; }
   .doctor-status{ min-height:18px; margin-top:10px; color:var(--muted); font:700 12px 'Inter',sans-serif; }
   .doctor-status.error{ color:#B93B28; }
@@ -9281,7 +9283,6 @@ function parseDoctorQrText(value){
 }
 
 function stopDoctorScanner(){
-  hardwareScanActive = false;
   if (doctorScanFrameId) cancelAnimationFrame(doctorScanFrameId);
   doctorScanFrameId = null;
   if (doctorScanStream){
@@ -9317,24 +9318,6 @@ async function scanDoctorFrame(){
   doctorScanFrameId = requestAnimationFrame(scanDoctorFrame);
 }
 
-// iData hardware scanner (native Android app only; see android/.../IScanPlugin.java)
-const hardwareScanner = window.Capacitor?.isNativePlatform?.() ? window.Capacitor.Plugins?.IScan : null;
-let hardwareScanActive = false;
-if (hardwareScanner){
-  hardwareScanner.addListener('scan', event => {
-    if (!hardwareScanActive) return;
-    const credential = parseDoctorQrText(event.value);
-    if (!credential){
-      setDoctorCredentialStatus('Scan detected, but it is not a valid Lakeshore doctor QR.', 'error');
-      return;
-    }
-    hardwareScanActive = false;
-    doctorCredentialDraft = credential;
-    renderDoctorCredentialModal();
-    setDoctorCredentialStatus('Doctor QR scanned. Press Save to keep it.', 'success');
-  });
-}
-
 // Rugged scanner devices can expose the barcode imager as a camera that the
 // scan service keeps open (NotReadableError); fall back to the other cameras.
 async function openDoctorScanStream(){
@@ -9359,18 +9342,6 @@ async function openDoctorScanStream(){
 }
 
 async function startDoctorScanner(){
-  if (hardwareScanner){
-    try{
-      const {available} = await hardwareScanner.isAvailable();
-      if (available){
-        hardwareScanActive = true;
-        setDoctorCredentialStatus('Press the scan button on the device and point it at the doctor QR code.', '');
-        return;
-      }
-    }catch(error){
-      console.warn('Hardware scanner unavailable:', error);
-    }
-  }
   if (!navigator.mediaDevices?.getUserMedia){
     setDoctorCredentialStatus('Camera is not available on this device/browser.', 'error');
     return;

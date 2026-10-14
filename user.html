@@ -9293,12 +9293,41 @@ function stopDoctorScanner(){
   doctorCredentialScanBtn.disabled = false;
 }
 
+// Fallback QR decoder for WebViews without BarcodeDetector (e.g. handheld/TV devices).
+let jsQrLoader = null;
+function loadJsQr(){
+  if (window.jsQR) return Promise.resolve(window.jsQR);
+  if (!jsQrLoader){
+    jsQrLoader = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      script.onload = () => resolve(window.jsQR);
+      script.onerror = () => { jsQrLoader = null; reject(new Error('Unable to load QR decoder')); };
+      document.head.appendChild(script);
+    });
+  }
+  return jsQrLoader;
+}
+
+const doctorScanCanvas = document.createElement('canvas');
+function decodeWithJsQr(video){
+  const width = video.videoWidth, height = video.videoHeight;
+  if (!width || !height) return '';
+  doctorScanCanvas.width = width;
+  doctorScanCanvas.height = height;
+  const ctx = doctorScanCanvas.getContext('2d', {willReadFrequently:true});
+  ctx.drawImage(video, 0, 0, width, height);
+  const image = ctx.getImageData(0, 0, width, height);
+  return window.jsQR(image.data, width, height, {inversionAttempts:'attemptBoth'})?.data || '';
+}
+
 async function scanDoctorFrame(){
   if (!doctorScanStream || !doctorScanDetector) return;
   try{
     if (doctorScanVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA){
-      const codes = await doctorScanDetector.detect(doctorScanVideo);
-      const rawValue = codes.find(code => code.rawValue)?.rawValue || '';
+      const rawValue = doctorScanDetector === 'jsqr'
+        ? decodeWithJsQr(doctorScanVideo)
+        : ((await doctorScanDetector.detect(doctorScanVideo)).find(code => code.rawValue)?.rawValue || '');
       if (rawValue){
         const credential = parseDoctorQrText(rawValue);
         if (credential){
@@ -9352,19 +9381,25 @@ async function startDoctorScanner(){
     setDoctorCredentialStatus('Camera is not available on this device/browser.', 'error');
     return;
   }
-  if (!('BarcodeDetector' in window)){
-    setDoctorCredentialStatus('QR scanning is not supported by this browser. Please use Chrome on mobile.', 'error');
-    return;
-  }
   stopDoctorScanner();
   doctorCredentialScanBtn.disabled = true;
   setDoctorCredentialStatus('Opening rear camera...', '');
   try{
-    doctorScanDetector = new BarcodeDetector({formats:['qr_code']});
-    doctorScanStream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'}},
-      audio:false
-    });
+    if ('BarcodeDetector' in window){
+      doctorScanDetector = new BarcodeDetector({formats:['qr_code']});
+    }else{
+      await loadJsQr();
+      doctorScanDetector = 'jsqr';
+    }
+    try{
+      doctorScanStream = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:'environment'}},
+        audio:false
+      });
+    }catch(constraintError){
+      if (constraintError?.name === 'NotAllowedError' || constraintError?.name === 'SecurityError') throw constraintError;
+      doctorScanStream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    }
     doctorScanVideo.srcObject = doctorScanStream;
     doctorScanBox.classList.add('open');
     await doctorScanVideo.play();
@@ -9374,7 +9409,7 @@ async function startDoctorScanner(){
   }catch(error){
     console.error('Unable to open doctor QR scanner:', error);
     stopDoctorScanner();
-    setDoctorCredentialStatus('Unable to open camera. Please allow camera permission and try again.', 'error');
+    setDoctorCredentialStatus('Unable to open camera ('+(error?.name || error?.message || 'unknown error')+'). Please allow camera permission and try again.', 'error');
   }
 }
 
